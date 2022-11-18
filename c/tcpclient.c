@@ -14,8 +14,7 @@ int main(int argc, char **argv)
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     int port;
     char ip[20] = "";
-    char *filename;
-    FILE *file;
+    char *userName;
 
     printf("Enter an IP address: \n");
     fgets(ip, 5000, stdin);
@@ -34,19 +33,18 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    printf("Enter a filename to retrieve: \n");
+    printf("Enter your username : \n");
     char userInput[5000];
     scanf("%s", userInput);
-    filename = userInput;
-    if ((file = fopen(filename, "w")) == NULL)
-    {
-        fprintf(stderr, "Cannot write to output file");
-        return 1;
-    }
-    send(sockfd, userInput, strlen(userInput) + 1, 0);
+    userName = userInput;
+    char createUser[30] = "-create username ";
+    
+    memcpy(&createUser[17], userInput, sizeof(userInput));
+
+    send(sockfd, createUser, strlen(createUser) + 1, 0);
     do
     {
-        char line_segment[255] = "";
+        /*char line_segment[255] = "";
         int f = recv(sockfd, line_segment, 256, 0);
         if (f == -1)
         {
@@ -65,7 +63,7 @@ int main(int argc, char **argv)
         else{
             fputs(to_file, file);
             printf("Printed line to file: %s\n", to_file);
-            }
+            }*/
     } while (running);
 
     close(sockfd);

@@ -65,24 +65,11 @@ int main(int argc, char **argv)
                 {
                     perror("There was a problem: \n");
                 }
-                printf("Got from client: %s\n", line);
-                FILE *file;
-                file = fopen(line, "r+");
-                if (file == NULL)
-                {
-                    printf("Error! Could not open file\n");
-                    char errorLine[263] = "Error! Could not open file.";
-                    send(i, errorLine, sizeof(errorLine) + 1, 0);
-                    exit(-1);
-                }
-                do
-                {
-                    char reply[255] = "";
 
-                    fgets(reply, 255, file);
-                    send(i, reply, 256, 0);
-                    printf("Sent : %s\n", reply);
-                } while (!feof(file));
+                printf("Got from client: %s\n", line);
+                char reply[255] = "";
+                send(i, reply, 256, 0);
+                printf("Sent : %s\n", reply);
                 printf("\nDone\n\n");
                 char *done = "-1";
                 send(i, done, strlen(done) + 1, 0);
