@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <sys/select.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 /* Program by Meghan Harris and Profesor Kalafut */
 
@@ -17,6 +18,11 @@ int main(int argc, char **argv)
     fd_set sockets;
     FD_ZERO(&sockets);
     FD_SET(sockfd, &sockets);
+    char userArray[10][12];
+    char *createCommand = "-create username";
+    char *command = "-";
+
+    bool check = true;
 
     int port;
 
@@ -65,12 +71,40 @@ int main(int argc, char **argv)
                 {
                     perror("There was a problem: \n");
                 }
+                printf("Received : %s\n", line);
+                // new username command
+                if (strstr(line, command))
+                {
+                    printf("create username");
+                    check = true;
+                    // Iterate throught he array, if the username does not exist, add it
+                    for (i = 0; i < sizeof(userArray) / sizeof(userArray[0]); i++)
+                    {
+                        if (!strcmp(line, userArray[i]))
+                        {
+                            check = false;
+                        }
+                    }
+                    if (check)
+                    {
+                        for (i = 0; i < sizeof(userArray) / sizeof(userArray[0]); i++)
+                        {
+                            if (!strcmp(userArray[i], ""))
+                            {
+                                memcpy(userArray[i], line, strlen(line));
+                                printf("%s", userArray[i]);
+                            }
+                        }
+                    }
+                }
 
-                printf("Got from client: %s\n", line);
-                char reply[255] = "";
-                send(i, reply, 256, 0);
-                printf("Sent : %s\n", reply);
-                printf("\nDone\n\n");
+                /*
+                                printf("Got from client: %s\n", line);
+                                char reply[255] = "";
+                                send(i, reply, 256, 0);
+                                printf("Sent : %s\n", reply);
+                                printf("\nDone\n\n");
+                                */
                 char *done = "-1";
                 send(i, done, strlen(done) + 1, 0);
                 FD_CLR(i, &sockets);

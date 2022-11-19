@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 
-bool running = true;
+bool running = false;
 
 int main(int argc, char **argv)
 {
@@ -15,6 +15,9 @@ int main(int argc, char **argv)
     int port;
     char ip[20] = "";
     char *userName;
+    char line_segment[255] = "";
+    char userInput[5000];
+    char reply[5000];
 
     printf("Enter an IP address: \n");
     fgets(ip, 5000, stdin);
@@ -33,15 +36,25 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    printf("Enter your username : \n");
-    char userInput[5000];
-    scanf("%s", userInput);
+    do{
+        printf("Enter your username : \n");
+    scanf("%12s", userInput);
     userName = userInput;
     char createUser[30] = "-create username ";
     
-    memcpy(&createUser[17], userInput, sizeof(userInput));
+    memcpy(&createUser[17], userInput, 12);
 
     send(sockfd, createUser, strlen(createUser) + 1, 0);
+    recv(sockfd, line_segment, 256, 0);
+    memcpy(reply, line_segment, sizeof(line_segment));
+
+    if(!strcmp(reply, "accepted"))
+        running = true;
+
+    } while(running == false);
+
+    printf("username accepted");
+
     do
     {
         /*char line_segment[255] = "";
