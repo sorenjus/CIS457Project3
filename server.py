@@ -2,6 +2,10 @@ import socket
 import select
 
 # Function to send message to all connected clients
+# TODO: Send to individuals and all online users -- be able to
+# get a list of all users.
+
+# TODO: Admin commands
 
 
 def send_to_all(sock, message):
