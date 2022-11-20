@@ -52,8 +52,8 @@ if __name__ == "__main__":
 
         # if repeated username
                 if name in record.values():
-                    sockfd.send(
-                        "\r\33[31m\33[1m Username already taken!\n\33[0m")
+                    newMsg = "\r\33[31m\33[1m Username already taken!\n\33[0m"
+                    sockfd.send(newMsg.encode())
                     del record[addr]
                     connected_list.remove(sockfd)
                     sockfd.close()
@@ -65,8 +65,10 @@ if __name__ == "__main__":
                           addr, " [", record[addr], "]")
                     welcome = "\33[32m\r\33[1m Welcome to chat room. Enter 'tata' anytime to exit\n\33[0m"
                     sockfd.send(welcome.encode())
+                    newUserMsg = "\33[32m\33[1m\r "+name + \
+                        " joined the conversation \n\33[0m"
                     send_to_all(
-                        sockfd, "\33[32m\33[1m\r "+name+" joined the conversation \n\33[0m")
+                        sockfd, newUserMsg.encode())
 
             # Some incoming message from a client
             else:
@@ -85,7 +87,7 @@ if __name__ == "__main__":
                         msg = "\r\33[1m"+"\33[31m " + \
                             record[(i, p)]+" left the conversation \33[0m\n"
 
-                        send_to_all(sock, msg)
+                        send_to_all(sock, msg.encode())
                         print("Client (%s, %s) is offline" %
                               (i, p), " [", record[(i, p)], "]")
                         del record[(i, p)]
@@ -101,8 +103,9 @@ if __name__ == "__main__":
         # abrupt user exit
                 except:
                     (i, p) = sock.getpeername()
-                    send_to_all(sock, "\r\33[31m \33[1m"+record[(i, p)
-                                                                ]+" left the conversation unexpectedly\33[0m\n")
+                    msg = "\r\33[31m \33[1m"+record[(i, p)
+                                                    ]+" left the conversation unexpectedly\33[0m\n"
+                    send_to_all(sock, msg.encode())
                     print("Client (%s, %s) is offline (error)" %
                           (i, p), " [", record[(i, p)], "]\n")
                     del record[(i, p)]
