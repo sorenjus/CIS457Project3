@@ -5,19 +5,17 @@ import sys
 
 # Helper function (formatting)
 
+name = ""
 
-def display():
-    you = "\33[33m\33[1m"+" You: "+"\33[0m"
+def usernameDisplay():
+    you = name + " : "
     sys.stdout.write(you)
     sys.stdout.flush()
 
 
 def main():
 
-    if len(sys.argv) < 2:
-        host = input("Enter host ip address: ")
-    else:
-        host = sys.argv[1]
+    serverIP = input("Enter host ip address: ")
 
     port = 5001
 
@@ -28,14 +26,14 @@ def main():
 
     # connecting host
     try:
-        s.connect((host, port))
+        s.connect((serverIP, port))
     except:
         print("\33[31m\33[1m Can't connect to the server \33[0m")
         sys.exit()
 
     # if connected
     s.send(name.encode())
-    display()
+    serverIP()
     while 1:
         socket_list = [sys.stdin, s]
 
@@ -52,13 +50,13 @@ def main():
                     sys.exit()
                 else:
                     sys.stdout.write(data)
-                    display()
+                    usernameDisplay()
 
             # user entered a message
             else:
                 msg = sys.stdin.readline()
                 s.send(msg.encode())
-                display()
+                usernameDisplay()
 
 
 if __name__ == "__main__":
