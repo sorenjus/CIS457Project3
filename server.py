@@ -73,7 +73,7 @@ if __name__ == "__main__":
                 # Data from client
                 try:
                     data1 = sock.recv(buffer)
-                    # data1 = data1.decode()
+                    data1 = data1.decode()
                     # print "sock is: ",sock
                     data = data1[:data1.index("\n")]
                     # data = data1
@@ -84,6 +84,7 @@ if __name__ == "__main__":
                     if data == "tata":
                         msg = "\r\33[1m"+"\33[31m " + \
                             record[(i, p)]+" left the conversation \33[0m\n"
+
                         send_to_all(sock, msg)
                         print("Client (%s, %s) is offline" %
                               (i, p), " [", record[(i, p)], "]")
