@@ -68,7 +68,7 @@ if __name__ == "__main__":
                     currentUsers[clientAddr] = user
                     print("Client (%s, %s) connected" %
                           clientAddr, " [", currentUsers[clientAddr], "]")
-                    welcome = "Welcome"
+                    welcome = "Welcome\n"
                     sockfd.send(welcome.encode())
                     newUserMsg = "" + user + \
                         " joined"
