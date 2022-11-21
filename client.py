@@ -5,58 +5,58 @@ import sys
 
 # Helper function (formatting)
 
-name = ""
+displayName = ""
 
-def usernameDisplay():
-    you = name + " : "
-    sys.stdout.write(you)
+def displayMessage():
+    sys.stdout.write(" me : ")
     sys.stdout.flush()
 
 
 def main():
 
-    serverIP = input("Enter host ip address: ")
-
-    port = 5001
+    serverIP = "127.0.0.1"
+    #serverIP = input("Enter server ip address: ")
+    #portNum = input("Enter the server's port number: ")
+    portNum = 9876
 
     # asks for user name
-    name = input("\33[34m\33[1m CREATING NEW ID:\n Enter username: \33[0m")
+    name = input("Enter username: ")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(2)
 
     # connecting host
     try:
-        s.connect((serverIP, port))
+        s.connect((serverIP, portNum))
     except:
         print("\33[31m\33[1m Can't connect to the server \33[0m")
         sys.exit()
 
-    # if connected
+    # After connecting, send username
     s.send(name.encode())
-    serverIP()
+    displayMessage()
     while 1:
         socket_list = [sys.stdin, s]
 
         # Get the list of sockets which are readable
         rList, wList, error_list = select.select(socket_list, [], [])
 
-        for sock in rList:
+        for sockfd in rList:
             # incoming message from server
-            if sock == s:
-                data = sock.recv(4096)
+            if sockfd == s:
+                data = sockfd.recv(4096)
                 data = data.decode()
                 if not data:
-                    print('\33[31m\33[1m \rDISCONNECTED!!\n \33[0m')
+                    print('Disconnected from server')
                     sys.exit()
                 else:
                     sys.stdout.write(data)
-                    usernameDisplay()
+                    displayMessage()
 
             # user entered a message
             else:
                 msg = sys.stdin.readline()
                 s.send(msg.encode())
-                usernameDisplay()
+                displayMessage()
 
 
 if __name__ == "__main__":

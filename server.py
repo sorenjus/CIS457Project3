@@ -10,67 +10,68 @@ import select
 
 def send_to_all(sock, message):
     # Message not forwarded to server and sender itself
-    for socket in connected_list:
-        if socket != server_socket and socket != sock:
+    for socket in serverList:
+        if socket != server and socket != sock:
             try:
                 socket.send(message)
             except:
                 # if connection not available
                 socket.close()
-                connected_list.remove(socket)
+                serverList.remove(socket)
 
 
 if __name__ == "__main__":
-    name = ""
+    user = ""
     # dictionary to store address corresponding to username
-    record = {}
+    currentUsers = {}
     # List to keep track of socket descriptors
-    connected_list = []
+    serverList = []
     buffer = 4096
-    port = 5001
+    #portNum = input("Enter the server's port number: ")
+    portNum = 9876
 
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    server_socket.bind(("localhost", port))
-    server_socket.listen(10)  # listen atmost 10 connection at one time
+    server.bind(("localhost", portNum))
+    server.listen(10)  # listen atmost 10 connection at one time
 
     # Add server socket to the list of readable connections
-    connected_list.append(server_socket)
+    serverList.append(server)
 
-    print("\33[32m \t\t\t\tSERVER WORKING \33[0m")
+    print("Server started")
 
     while 1:
         # Get the list sockets which are ready to be read through select
-        rList, wList, error_sockets = select.select(connected_list, [], [])
+        rList, wList, error_sockets = select.select(serverList, [], [])
 
         for sock in rList:
             # New connection
-            if sock == server_socket:
+            if sock == server:
                 # Handle the case in which there is a new connection recieved through server_socket
-                sockfd, addr = server_socket.accept()
-                name = sockfd.recv(buffer)
-                name = name.decode()
-                connected_list.append(sockfd)
-                record[addr] = ""
+                sockfd, clientAddr = server.accept()
+                user = sockfd.recv(buffer)
+                user = user.decode()
+                serverList.append(sockfd)
+                currentUsers[clientAddr] = ""
                 # print "record and conn list ",record,connected_list
 
         # if repeated username
-                if name in record.values():
-                    newMsg = "\r\33[31m\33[1m Username already taken!\n\33[0m"
-                    sockfd.send(newMsg.encode())
-                    del record[addr]
-                    connected_list.remove(sockfd)
+                if user in currentUsers.values():
+                    duplicateUsername = "\r\33[31m\33[1m Username already taken!\n\33[0m"
+                    sockfd.send(duplicateUsername.encode())
+                    del currentUsers[clientAddr]
+                    serverList.remove(sockfd)
                     sockfd.close()
                     continue
                 else:
                     # add name and address
-                    record[addr] = name
+                    currentUsers[clientAddr] = user
                     print("Client (%s, %s) connected" %
-                          addr, " [", record[addr], "]")
-                    welcome = "\33[32m\r\33[1m Welcome to chat room. Enter 'tata' anytime to exit\n\33[0m"
+                          clientAddr, " [", currentUsers[clientAddr], "]")
+                    welcome = "Welcome"
                     sockfd.send(welcome.encode())
-                    newUserMsg = "\33[32m\33[1m\r "+name + \
-                        " joined the conversation \n\33[0m"
+                    newUserMsg = "" + user + \
+                        " joined"
                     send_to_all(
                         sockfd, newUserMsg.encode())
 
@@ -81,40 +82,40 @@ if __name__ == "__main__":
                     data1 = sock.recv(buffer)
                     data1 = data1.decode()
                     # print "sock is: ",sock
-                    data = data1[:data1.index("\n")]
+                    receivedMesssage = data1[:data1.index("\n")]
                     # data = data1
-                    print("\ndata received: ", data)
+                    print("\ndata received: ", receivedMesssage)
 
     # get addr of client sending the message
                     i, p = sock.getpeername()
-                    if data == "tata":
+                    if receivedMesssage == "quit":
                         msg = "\r\33[1m"+"\33[31m " + \
-                            record[(i, p)]+" left the conversation \33[0m\n"
+                            currentUsers[(i, p)]+" left the conversation \33[0m\n"
 
                         send_to_all(sock, msg.encode())
                         print("Client (%s, %s) is offline" %
-                              (i, p), " [", record[(i, p)], "]")
-                        del record[(i, p)]
-                        connected_list.remove(sock)
+                              (i, p), " [", currentUsers[(i, p)], "]")
+                        del currentUsers[(i, p)]
+                        serverList.remove(sock)
                         sock.close()
                         continue
 
                     else:
                         msg = "\r\33[1m"+"\33[35m " + \
-                            record[(i, p)]+": "+"\33[0m"+data+"\n"
+                            currentUsers[(i, p)]+": "+"\33[0m"+receivedMesssage+"\n"
                         send_to_all(sock, msg.encode())
 
         # abrupt user exit
                 except:
                     (i, p) = sock.getpeername()
-                    msg = "\r\33[31m \33[1m"+record[(i, p)
+                    msg = "\r\33[31m \33[1m"+currentUsers[(i, p)
                                                     ]+" left the conversation unexpectedly\33[0m\n"
                     send_to_all(sock, msg.encode())
                     print("Client (%s, %s) is offline (error)" %
-                          (i, p), " [", record[(i, p)], "]\n")
-                    del record[(i, p)]
-                    connected_list.remove(sock)
+                          (i, p), " [", currentUsers[(i, p)], "]\n")
+                    del currentUsers[(i, p)]
+                    serverList.remove(sock)
                     sock.close()
                     continue
 
-    server_socket.close()
+    server.close()
