@@ -33,7 +33,6 @@ def main():
 
     # After connecting, send username
     s.send(name.encode())
-    displayMessage()
     while 1:
         socket_list = [sys.stdin, s]
 

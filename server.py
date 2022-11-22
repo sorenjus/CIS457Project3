@@ -19,7 +19,6 @@ def send_to_all(sock, message):
                 socket.close()
                 serverList.remove(socket)
 
-
 if __name__ == "__main__":
     user = ""
     # dictionary to store address corresponding to username
@@ -71,7 +70,7 @@ if __name__ == "__main__":
                     welcome = "Welcome\n"
                     sockfd.send(welcome.encode())
                     newUserMsg = "" + user + \
-                        " joined"
+                        " is online\n"
                     send_to_all(
                         sockfd, newUserMsg.encode())
 
@@ -90,7 +89,7 @@ if __name__ == "__main__":
                     i, p = sock.getpeername()
                     if receivedMesssage == "quit":
                         msg = "\r\33[1m"+"\33[31m " + \
-                            currentUsers[(i, p)]+" left the conversation \33[0m\n"
+                            currentUsers[(i, p)]+" left the conversation\n"
 
                         send_to_all(sock, msg.encode())
                         print("Client (%s, %s) is offline" %
@@ -111,7 +110,7 @@ if __name__ == "__main__":
                     msg = "\r\33[31m \33[1m"+currentUsers[(i, p)
                                                     ]+" left the conversation unexpectedly\33[0m\n"
                     send_to_all(sock, msg.encode())
-                    print("Client (%s, %s) is offline (error)" %
+                    print("Client (%s, %s) is offline" %
                           (i, p), " [", currentUsers[(i, p)], "]\n")
                     del currentUsers[(i, p)]
                     serverList.remove(sock)
