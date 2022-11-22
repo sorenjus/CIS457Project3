@@ -25,6 +25,7 @@ if __name__ == "__main__":
     currentUsers = {}
     # List to keep track of socket descriptors
     serverList = []
+    admin = []
     buffer = 4096
     #portNum = input("Enter the server's port number: ")
     portNum = 9876
@@ -98,7 +99,17 @@ if __name__ == "__main__":
                         serverList.remove(sock)
                         sock.close()
                         continue
-
+                    elif receivedMesssage.startswith('-'):
+                        print("admin command")
+                        if ('admin') in receivedMesssage:
+                            if('password') in receivedMesssage:
+                                print('password')
+                                #print(currentUsers[(i,p)])
+                                admin.append(currentUsers[(i, p)])
+                                #print(admin[0])
+                                adminSuccess = 'You are now an admin\n'
+                                sockfd.send(adminSuccess.encode())
+                        continue
                     else:
                         msg = "\r\33[1m"+"\33[35m " + \
                             currentUsers[(i, p)]+": "+"\33[0m"+receivedMesssage+"\n"
