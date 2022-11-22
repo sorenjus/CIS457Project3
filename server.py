@@ -23,6 +23,7 @@ if __name__ == "__main__":
     user = ""
     # dictionary to store address corresponding to username
     currentUsers = {}
+    admins = []
     # List to keep track of socket descriptors
     serverList = []
     admin = []
@@ -98,18 +99,11 @@ if __name__ == "__main__":
                         del currentUsers[(i, p)]
                         serverList.remove(sock)
                         sock.close()
-                        continue
                     elif receivedMesssage.startswith('-'):
                         print("admin command")
-                        if ('admin') in receivedMesssage:
-                            if('password') in receivedMesssage:
-                                print('password')
-                                #print(currentUsers[(i,p)])
-                                admin.append(currentUsers[(i, p)])
-                                #print(admin[0])
-                                adminSuccess = 'You are now an admin\n'
-                                sockfd.send(adminSuccess.encode())
-                        continue
+                        if ('-admin') in receivedMesssage:
+                           admins.append(currentUsers[(i, p)])
+                           print(admins[0])
                     else:
                         msg = "\r\33[1m"+"\33[35m " + \
                             currentUsers[(i, p)]+": "+"\33[0m"+receivedMesssage+"\n"

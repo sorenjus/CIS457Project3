@@ -2,6 +2,7 @@ import socket
 import select
 import string
 import sys
+import getpass
 
 # Helper function (formatting)
 
@@ -11,6 +12,21 @@ def displayMessage():
     sys.stdout.write(" me : ")
     sys.stdout.flush()
 
+def commandTree(msg, s, isAdmin):
+    if "-admin" in msg and isAdmin == False:
+        password = getpass.getpass('Enter the password : ')
+        if(password == 'password'):
+            s.send(msg.encode())
+            print('You are now an admin')
+            return True
+        elif isAdmin and "-admin" in msg:
+            print('you are already an admin')
+            return True
+        elif isAdmin :
+            s.send(msg.encode())
+            print('other command stuff')
+            displayMessage()
+            return True
 
 def main():
 
@@ -18,6 +34,7 @@ def main():
     #serverIP = input("Enter server ip address: ")
     #portNum = input("Enter the server's port number: ")
     portNum = 9876
+    isAdmin = False
 
     # asks for user name
     name = input("Enter username: ")
@@ -45,7 +62,7 @@ def main():
                 data = sockfd.recv(4096)
                 data = data.decode()
                 if not data:
-                    print('Disconnected from server')
+                    print('\nDisconnected from server')
                     sys.exit()
                 else:
                     sys.stdout.write(data)
@@ -54,8 +71,12 @@ def main():
             # user entered a message
             else:
                 msg = sys.stdin.readline()
-                s.send(msg.encode())
-                displayMessage()
+                if msg.startswith('-'):
+                    isAdmin = commandTree(msg, s, isAdmin)
+                    displayMessage()
+                else:
+                    s.send(msg.encode())
+                    displayMessage()
 
 
 if __name__ == "__main__":
