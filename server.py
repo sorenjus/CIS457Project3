@@ -29,8 +29,8 @@ def send_to_individual(message, username, userSocket):
             userSocket[username].close()
             serverList.remove(userSocket[username])
 
-def kick_user(username, userSocket, sock):
-    if userSocket[username] is not None:
+def kick_user(username, userSockets, sock):
+    if userSockets[username] is not None:
         print('kickable')
         try:
             print('search for user')
@@ -38,15 +38,16 @@ def kick_user(username, userSocket, sock):
                 if user == username:
                     del user
             print('close socket')
-            userSocket[username].close()
-            serverList.remove(userSocket[username])
-            del userSocket[username]
+            userSockets[username].close()
+            serverList.remove(userSockets[username])
+            del userSockets[username]
             removed = "\n" + username + "has been kicked from the conversation\n"
             send_to_all(removed.encode())
         except:
             offline = "\n" + username + "is offline"
             sock.send(offline.encode())
     else:
+        print('offline')
         offline = "\n" + username + "is offline"
         sock.send(offline.encode())
 
@@ -158,7 +159,7 @@ if __name__ == "__main__":
                                 print('split string')
                                 arr = receivedMesssage.split(" ")
                                 username = arr[1]
-                                print('send to kick')
+                                print('send to kick ' + username)
                                 kick_user(username, userSockets, sock)
 
                     elif receivedMesssage.startswith('.private'):
