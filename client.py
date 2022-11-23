@@ -8,25 +8,32 @@ import getpass
 
 displayName = ""
 
+
 def displayMessage():
     sys.stdout.write(" me : ")
     sys.stdout.flush()
 
+
 def commandTree(msg, s, isAdmin):
     if "-admin" in msg and isAdmin == False:
         password = getpass.getpass('Enter the password : ')
-        if(password == 'password'):
+        if (password == 'password'):
             s.send(msg.encode())
             print('You are now an admin')
             return True
         elif isAdmin and "-admin" in msg:
             print('you are already an admin')
             return True
-        elif isAdmin :
+        elif isAdmin:
             s.send(msg.encode())
             print('other command stuff')
             displayMessage()
             return True
+    elif "-getusers" in msg:
+        s.send(msg.encode())
+        displayMessage()
+        return isAdmin
+
 
 def main():
 

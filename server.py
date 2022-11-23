@@ -118,11 +118,22 @@ if __name__ == "__main__":
                         if ('-admin') in receivedMesssage:
                             admins.append(currentUsers[(i, p)])
                             print(admins[0])
+                        elif ('-getusers') in receivedMesssage:
+                            str1 = "\n"
+                            counter = 0
+                            for element in currentUsers.values():
+                                if counter < len(currentUsers) - 1:
+                                    str1 += element + ", "
+                                else:
+                                    str1 += element
+                                counter += 1
+                            str1 += "\n"
+                            sock.send(str1.encode())
                     elif receivedMesssage.startswith('.private'):
                         arr = receivedMesssage.split(" ")
                         username = arr[1]
                         arr.pop(1)
-                        str1 = currentUsers[(i, p)]+": "
+                        str1 = "\n" + currentUsers[(i, p)]+": "
                         for item in arr:
                             str1 += item + " "
                         str1 += "\n"
