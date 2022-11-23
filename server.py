@@ -29,6 +29,26 @@ def send_to_individual(message, username, userSocket):
             userSocket[username].close()
             serverList.remove(userSocket[username])
 
+def kick_user(username, userSocket, sock):
+    if userSocket[username] is not None:
+        print('kickable')
+        try:
+            print('search for user')
+            for user in currentUsers.values:
+                if user == username:
+                    del user
+            print('close socket')
+            userSocket[username].close()
+            serverList.remove(userSocket[username])
+            del userSocket[username]
+            removed = "\n" + username + "has been kicked from the conversation\n"
+            send_to_all(removed.encode())
+        except:
+            offline = "\n" + username + "is offline"
+            sock.send(offline.encode())
+    else:
+        offline = "\n" + username + "is offline"
+        sock.send(offline.encode())
 
 if __name__ == "__main__":
     user = ""
@@ -56,6 +76,7 @@ if __name__ == "__main__":
     while 1:
         # Get the list sockets which are ready to be read through select
         rList, wList, error_sockets = select.select(serverList, [], [])
+        isAdmin = False
 
         for sock in rList:
             # New connection
@@ -114,7 +135,6 @@ if __name__ == "__main__":
                         serverList.remove(sock)
                         sock.close()
                     elif receivedMesssage.startswith('-'):
-                        print("admin command")
                         if ('-admin') in receivedMesssage:
                             admins.append(currentUsers[(i, p)])
                             print(admins[0])
@@ -129,6 +149,18 @@ if __name__ == "__main__":
                                 counter += 1
                             str1 += "\n"
                             sock.send(str1.encode())
+                        elif ('-kick') in receivedMesssage:
+                            for admin in admins:
+                                if currentUsers[(i, p)] == admin:
+                                    isAdmin = True
+                                    print(isAdmin)
+                            if isAdmin:
+                                print('split string')
+                                arr = receivedMesssage.split(" ")
+                                username = arr[1]
+                                print('send to kick')
+                                kick_user(username, userSockets, sock)
+
                     elif receivedMesssage.startswith('.private'):
                         arr = receivedMesssage.split(" ")
                         username = arr[1]
@@ -153,7 +185,6 @@ if __name__ == "__main__":
                     send_to_all(sock, msg.encode())
                     print("Client (%s, %s) is offline" %
                           (i, p), " [", currentUsers[(i, p)], "]\n")
-                    print(currentUsers)
                     del currentUsers[(i, p)]
                     serverList.remove(sock)
                     sock.close()

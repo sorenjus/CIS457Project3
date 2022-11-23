@@ -21,17 +21,17 @@ def commandTree(msg, s, isAdmin):
             s.send(msg.encode())
             print('You are now an admin')
             return True
-        elif isAdmin and "-admin" in msg:
-            print('you are already an admin')
-            return True
-        elif isAdmin:
-            s.send(msg.encode())
-            print('other command stuff')
-            displayMessage()
-            return True
+    elif isAdmin and "-admin" in msg:
+        print('you are already an admin')
+        return True
+    elif isAdmin:
+        s.send(msg.encode())
+        print('other command stuff')
+        return True
     elif "-getusers" in msg:
         s.send(msg.encode())
-        displayMessage()
+        return isAdmin
+    else:
         return isAdmin
 
 
