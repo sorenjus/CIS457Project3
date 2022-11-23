@@ -19,6 +19,17 @@ def send_to_all(sock, message):
                 socket.close()
                 serverList.remove(socket)
 
+
+def send_to_individual(message, username, userSocket):
+    if userSocket[username] is not None:
+        try:
+            userSocket[username].send(message.encode())
+        except:
+            # if connection not available
+            userSocket[username].close()
+            serverList.remove(userSocket[username])
+
+
 if __name__ == "__main__":
     user = ""
     # dictionary to store address corresponding to username
@@ -26,6 +37,7 @@ if __name__ == "__main__":
     admins = []
     # List to keep track of socket descriptors
     serverList = []
+    userSockets = {}
     admin = []
     buffer = 4096
     #portNum = input("Enter the server's port number: ")
@@ -55,10 +67,11 @@ if __name__ == "__main__":
                 serverList.append(sockfd)
                 currentUsers[clientAddr] = ""
                 # print "record and conn list ",record,connected_list
+                print(currentUsers)
 
         # if repeated username
                 if user in currentUsers.values():
-                    duplicateUsername = "\r\33[31m\33[1m Username already taken!\n\33[0m"
+                    duplicateUsername = "Username already taken!\n"
                     sockfd.send(duplicateUsername.encode())
                     del currentUsers[clientAddr]
                     serverList.remove(sockfd)
@@ -71,6 +84,7 @@ if __name__ == "__main__":
                           clientAddr, " [", currentUsers[clientAddr], "]")
                     welcome = "Welcome\n"
                     sockfd.send(welcome.encode())
+                    userSockets[user] = sockfd
                     newUserMsg = "" + user + \
                         " is online\n"
                     send_to_all(
@@ -102,21 +116,33 @@ if __name__ == "__main__":
                     elif receivedMesssage.startswith('-'):
                         print("admin command")
                         if ('-admin') in receivedMesssage:
-                           admins.append(currentUsers[(i, p)])
-                           print(admins[0])
+                            admins.append(currentUsers[(i, p)])
+                            print(admins[0])
+                    elif receivedMesssage.startswith('.private'):
+                        arr = receivedMesssage.split(" ")
+                        username = arr[1]
+                        arr.pop(1)
+                        str1 = currentUsers[(i, p)]+": "
+                        for item in arr:
+                            str1 += item + " "
+                        str1 += "\n"
+                        print(str1)
+                        send_to_individual(str1, username, userSockets)
                     else:
                         msg = "\r\33[1m"+"\33[35m " + \
-                            currentUsers[(i, p)]+": "+"\33[0m"+receivedMesssage+"\n"
+                            currentUsers[(i, p)]+": "+"\33[0m" + \
+                            receivedMesssage+"\n"
                         send_to_all(sock, msg.encode())
 
         # abrupt user exit
                 except:
                     (i, p) = sock.getpeername()
                     msg = "\r\33[31m \33[1m"+currentUsers[(i, p)
-                                                    ]+" left the conversation unexpectedly\33[0m\n"
+                                                          ]+" left the conversation unexpectedly\33[0m\n"
                     send_to_all(sock, msg.encode())
                     print("Client (%s, %s) is offline" %
                           (i, p), " [", currentUsers[(i, p)], "]\n")
+                    print(currentUsers)
                     del currentUsers[(i, p)]
                     serverList.remove(sock)
                     sock.close()
