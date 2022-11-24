@@ -2,10 +2,6 @@ import socket
 import select
 
 # Function to send message to all connected clients
-# TODO: Send to individuals and all online users -- be able to
-# get a list of all users.
-
-# TODO: Admin commands
 
 
 def send_to_all(sock, message):
@@ -21,40 +17,46 @@ def send_to_all(sock, message):
 
 
 def send_to_individual(message, username, userSocket):
-    if userSocket[username] is not None:
-        try:
-            userSocket[username].send(message.encode())
-        except:
-            # if connection not available
-            userSocket[username].close()
-            serverList.remove(userSocket[username])
+    userExists = False
+    for item in userArr:
+        if item == username:
+            userExists = True
+    if userExists:
+        if userSocket[username] is not None:
+            try:
+                userSocket[username].send(message.encode())
+            except:
+                # if connection not available
+                userSocket[username].close()
+                serverList.remove(userSocket[username])
+
 
 def kick_user(username, userSockets, sock):
-    
-        try:
-            print('close socket')
-            userSockets[username].close()
-            serverList.remove(userSockets[username])
-            del userSockets[username]
-            removed = "\n" + username + "has been kicked from the conversation\n"
-            send_to_all(removed.encode())
-        except:
-            offline = "\n" + username + "is offline"
-            sock.send(offline.encode())
-    
-        
+
+    try:
+        print('close socket')
+        userSockets[username].close()
+        serverList.remove(userSockets[username])
+        del userSockets[username]
+        removed = "\n" + username + "has been kicked from the conversation\n"
+        send_to_all(removed.encode())
+    except:
+        offline = "\n" + username + "is offline"
+        sock.send(offline.encode())
+
 
 if __name__ == "__main__":
     user = ""
     # dictionary to store address corresponding to username
     currentUsers = {}
     admins = []
+    userArr = []
     # List to keep track of socket descriptors
     serverList = []
     userSockets = {}
     admin = []
     buffer = 4096
-    #portNum = input("Enter the server's port number: ")
+    # portNum = input("Enter the server's port number: ")
     portNum = 9876
 
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -100,6 +102,7 @@ if __name__ == "__main__":
                     welcome = "Welcome\n"
                     sockfd.send(welcome.encode())
                     userSockets[user] = sockfd
+                    userArr.append(user)
                     newUserMsg = "" + user + \
                         " is online\n"
                     send_to_all(
@@ -121,7 +124,7 @@ if __name__ == "__main__":
                     if receivedMesssage == "quit":
                         msg = "\r\33[1m"+"\33[31m " + \
                             currentUsers[(i, p)]+" left the conversation\n"
-
+                        userArr.remove(currentUsers[(i, p)])
                         send_to_all(sock, msg.encode())
                         print("Client (%s, %s) is offline" %
                               (i, p), " [", currentUsers[(i, p)], "]")
@@ -135,8 +138,8 @@ if __name__ == "__main__":
                         elif ('-getusers') in receivedMesssage:
                             str1 = "\n"
                             counter = 0
-                            for element in currentUsers.values():
-                                if counter < len(currentUsers) - 1:
+                            for element in userArr:
+                                if counter < len(userArr) - 1:
                                     str1 += element + ", "
                                 else:
                                     str1 += element
@@ -153,14 +156,36 @@ if __name__ == "__main__":
                                 arr = receivedMesssage.split(" ")
                                 username = arr[1]
                                 print('send to kick ' + username)
-                                for user in currentUsers.values():
+                                for user in userArr:
                                     if user == username:
                                         print('kickable')
                                         kick_user(username, userSockets, sock)
-                                else:
-                                    print('offline')
-                                    offline = "\n" + username + "is offline"
-                                    sock.send(offline.encode())
+                                        userArr.remove(user)
+                                        continue
+                        elif ('-makeadmin') in receivedMesssage:
+                            for admin in admins:
+                                if currentUsers[(i, p)] == admin:
+                                    isAdmin = True
+                                    print(isAdmin)
+
+                            arr = receivedMesssage.split(" ")
+                            if len(arr) > 1:
+                                notAdmin = True
+                                username = arr[1]
+                                userExists = False
+                                for item in userArr:
+                                    if item == username:
+                                        userExists = True
+                                for admin in admins:
+                                    if username == admin:
+                                        notAdmin = False
+                                        print(isAdmin)
+                                if isAdmin and userExists and notAdmin:
+                                    admins.append(username)
+                                    msg = '-admin'
+                                    print("Admins: ", list(admins))
+                                    send_to_individual(
+                                        msg, username, userSockets)
 
                     elif receivedMesssage.startswith('.private'):
                         arr = receivedMesssage.split(" ")

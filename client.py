@@ -21,6 +21,8 @@ def commandTree(msg, s, isAdmin):
             s.send(msg.encode())
             print('You are now an admin')
             return True
+        else:
+            return False
     elif isAdmin and "-admin" in msg:
         print('you are already an admin')
         return True
@@ -72,8 +74,13 @@ def main():
                     print('\nDisconnected from server')
                     sys.exit()
                 else:
-                    sys.stdout.write(data)
-                    displayMessage()
+                    if ("-admin") in data:
+                        isAdmin = True
+                        print("You were made an admin.")
+                        displayMessage()
+                    else:
+                        sys.stdout.write(data)
+                        displayMessage()
 
             # user entered a message
             else:
