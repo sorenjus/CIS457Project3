@@ -6,15 +6,16 @@ import getpass
 
 # Helper function (formatting)
 
-displayName = ""
-
 
 def displayMessage():
-    sys.stdout.write(" me : ")
+    sys.stdout.write("me : ")
     sys.stdout.flush()
+
+# Function to handle admin commands
 
 
 def commandTree(msg, s, isAdmin):
+    # Client assigns themselves admin status
     if "-admin" in msg and isAdmin == False:
         password = getpass.getpass('Enter the password : ')
         if (password == 'password'):
@@ -28,7 +29,6 @@ def commandTree(msg, s, isAdmin):
         return True
     elif isAdmin:
         s.send(msg.encode())
-        print('other command stuff')
         return True
     elif "-getusers" in msg:
         s.send(msg.encode())
@@ -36,13 +36,20 @@ def commandTree(msg, s, isAdmin):
     else:
         return isAdmin
 
+# Main function to set up connection to server and
+# maintain a connection while receiving and sending
+# messages
+
 
 def main():
 
-    serverIP = "127.0.0.1"
-    #serverIP = input("Enter server ip address: ")
-    #portNum = input("Enter the server's port number: ")
-    portNum = 9876
+    # serverIP = "127.0.0.1"
+    # Input to hold server address
+    serverIP = input("Enter server ip address: ")
+    # Input to hold port number
+    portNum = input("Enter the server's port number: ")
+    # portNum = 9876
+    # Boolean to hold admin status
     isAdmin = False
 
     # asks for user name
@@ -50,11 +57,11 @@ def main():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(2)
 
-    # connecting host
+    # Connect to host
     try:
-        s.connect((serverIP, portNum))
+        s.connect((serverIP, int(portNum)))
     except:
-        print("\33[31m\33[1m Can't connect to the server \33[0m")
+        print("\n Can't connect to the server \n")
         sys.exit()
 
     # After connecting, send username
@@ -74,6 +81,7 @@ def main():
                     print('\nDisconnected from server')
                     sys.exit()
                 else:
+                    # When client has been made an admin by another user
                     if ("-admin") in data:
                         isAdmin = True
                         print("You were made an admin.")
@@ -82,7 +90,7 @@ def main():
                         sys.stdout.write(data)
                         displayMessage()
 
-            # user entered a message
+            # Client sends a message
             else:
                 msg = sys.stdin.readline()
                 if msg.startswith('-'):

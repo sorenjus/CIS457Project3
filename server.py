@@ -1,6 +1,11 @@
 import socket
 import select
 
+# Written by Justin Sorensen and Meghan Harris with referencing
+# to Rishija Mangla at the following link:
+# https://github.com/Rishija/python_chatServer
+
+
 # Function to send message to all connected clients
 
 
@@ -14,6 +19,8 @@ def send_to_all(sock, message):
                 # if connection not available
                 socket.close()
                 serverList.remove(socket)
+
+# Function to send messages to selected client
 
 
 def send_to_individual(message, username, userSocket):
@@ -30,38 +37,46 @@ def send_to_individual(message, username, userSocket):
                 userSocket[username].close()
                 serverList.remove(userSocket[username])
 
+# Function to kick a particular user offline
+
 
 def kick_user(username, userSockets, sock):
 
     try:
-        print('close socket')
         userSockets[username].close()
         serverList.remove(userSockets[username])
         del userSockets[username]
-        removed = "\n" + username + "has been kicked from the conversation\n"
+        removed = "\n" + username + " has been kicked from the conversation\n"
         send_to_all(removed.encode())
     except:
-        offline = "\n" + username + "is offline"
+        offline = "\n" + username + " is offline\n"
         sock.send(offline.encode())
+
+# Main driver function to set up connections and handle
+# client communications
 
 
 if __name__ == "__main__":
     user = ""
     # dictionary to store address corresponding to username
     currentUsers = {}
+    # List of approved admins
     admins = []
+    # List of current users
     userArr = []
     # List to keep track of socket descriptors
     serverList = []
+    # Dictionary of user sockets
     userSockets = {}
-    admin = []
+    # Variable to hold incoming data
     buffer = 4096
-    # portNum = input("Enter the server's port number: ")
-    portNum = 9876
-
+    # Variable to hold port number input
+    portNum = input("Enter the server's port number: ")
+    # portNum = 9876
+    # Server socket
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    server.bind(("localhost", portNum))
+    server.bind(("localhost", int(portNum)))
     server.listen(10)  # listen atmost 10 connection at one time
 
     # Add server socket to the list of readable connections
@@ -77,17 +92,16 @@ if __name__ == "__main__":
         for sock in rList:
             # New connection
             if sock == server:
-                # Handle the case in which there is a new connection recieved through server_socket
+                # Accept new connections through server socket
                 sockfd, clientAddr = server.accept()
                 user = sockfd.recv(buffer)
                 user = user.decode()
                 serverList.append(sockfd)
                 currentUsers[clientAddr] = ""
-                # print "record and conn list ",record,connected_list
                 print(currentUsers)
 
-        # if repeated username
-                if user in currentUsers.values():
+                # Check for duplicate usernames
+                if user in userArr:
                     duplicateUsername = "Username already taken!\n"
                     sockfd.send(duplicateUsername.encode())
                     del currentUsers[clientAddr]
@@ -99,42 +113,42 @@ if __name__ == "__main__":
                     currentUsers[clientAddr] = user
                     print("Client (%s, %s) connected" %
                           clientAddr, " [", currentUsers[clientAddr], "]")
-                    welcome = "Welcome\n"
+                    welcome = "\nWelcome\n"
                     sockfd.send(welcome.encode())
                     userSockets[user] = sockfd
                     userArr.append(user)
-                    newUserMsg = "" + user + \
+                    newUserMsg = "\n" + user + \
                         " is online\n"
                     send_to_all(
                         sockfd, newUserMsg.encode())
 
-            # Some incoming message from a client
+            # Incoming message from a client
             else:
-                # Data from client
                 try:
                     data1 = sock.recv(buffer)
                     data1 = data1.decode()
-                    # print "sock is: ",sock
                     receivedMesssage = data1[:data1.index("\n")]
-                    # data = data1
                     print("\ndata received: ", receivedMesssage)
 
-    # get addr of client sending the message
+                    # Retrieve socket address from client
                     i, p = sock.getpeername()
                     if receivedMesssage == "quit":
-                        msg = "\r\33[1m"+"\33[31m " + \
+                        msg = "\n" + \
                             currentUsers[(i, p)]+" left the conversation\n"
                         userArr.remove(currentUsers[(i, p)])
                         send_to_all(sock, msg.encode())
-                        print("Client (%s, %s) is offline" %
-                              (i, p), " [", currentUsers[(i, p)], "]")
+                        print("\nClient (%s, %s) is offline" %
+                              (i, p), " [", currentUsers[(i, p)], "]\n")
                         del currentUsers[(i, p)]
                         serverList.remove(sock)
                         sock.close()
+                    # Handle client admin commands
                     elif receivedMesssage.startswith('-'):
+                        # Client assigned admin status
                         if ('-admin') in receivedMesssage:
                             admins.append(currentUsers[(i, p)])
-                            print(admins[0])
+                            print(list(admins))
+                        # Client requests all usernames
                         elif ('-getusers') in receivedMesssage:
                             str1 = "\n"
                             counter = 0
@@ -146,27 +160,24 @@ if __name__ == "__main__":
                                 counter += 1
                             str1 += "\n"
                             sock.send(str1.encode())
+                        # Client admin removes another client from the server
                         elif ('-kick') in receivedMesssage:
                             for admin in admins:
                                 if currentUsers[(i, p)] == admin:
                                     isAdmin = True
-                                    print(isAdmin)
                             if isAdmin:
-                                print('split string')
                                 arr = receivedMesssage.split(" ")
                                 username = arr[1]
-                                print('send to kick ' + username)
                                 for user in userArr:
                                     if user == username:
-                                        print('kickable')
                                         kick_user(username, userSockets, sock)
                                         userArr.remove(user)
                                         continue
+                        # Client admin makes another client an admin
                         elif ('-makeadmin') in receivedMesssage:
                             for admin in admins:
                                 if currentUsers[(i, p)] == admin:
                                     isAdmin = True
-                                    print(isAdmin)
 
                             arr = receivedMesssage.split(" ")
                             if len(arr) > 1:
@@ -179,14 +190,13 @@ if __name__ == "__main__":
                                 for admin in admins:
                                     if username == admin:
                                         notAdmin = False
-                                        print(isAdmin)
                                 if isAdmin and userExists and notAdmin:
                                     admins.append(username)
-                                    msg = '-admin'
+                                    msg = '\n-admin\n'
                                     print("Admins: ", list(admins))
                                     send_to_individual(
                                         msg, username, userSockets)
-
+                    # Client sending another client a private message
                     elif receivedMesssage.startswith('.private'):
                         arr = receivedMesssage.split(" ")
                         username = arr[1]
@@ -195,22 +205,23 @@ if __name__ == "__main__":
                         for item in arr:
                             str1 += item + " "
                         str1 += "\n"
-                        print(str1)
                         send_to_individual(str1, username, userSockets)
+                    # Client broadcasts message to all clients
                     else:
-                        msg = "\r\33[1m"+"\33[35m " + \
-                            currentUsers[(i, p)]+": "+"\33[0m" + \
+                        msg = "\n" + \
+                            currentUsers[(i, p)]+": " + \
                             receivedMesssage+"\n"
                         send_to_all(sock, msg.encode())
 
-        # abrupt user exit
+                # User exits without quit command
                 except:
                     (i, p) = sock.getpeername()
-                    msg = "\r\33[31m \33[1m"+currentUsers[(i, p)
-                                                          ]+" left the conversation unexpectedly\33[0m\n"
+                    msg = "\n"+currentUsers[(i, p)
+                                            ]+" left the conversation unexpectedly\n"
                     send_to_all(sock, msg.encode())
                     print("Client (%s, %s) is offline" %
                           (i, p), " [", currentUsers[(i, p)], "]\n")
+                    userArr.remove(currentUsers[(i, p)])
                     del currentUsers[(i, p)]
                     serverList.remove(sock)
                     sock.close()
