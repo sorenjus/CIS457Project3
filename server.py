@@ -32,10 +32,6 @@ def send_to_individual(message, username, userSocket):
 def kick_user(username, userSockets, sock):
     
         try:
-            print('search for user')
-            # for user in currentUsers.values:
-            #     if user in username:
-            #         del user
             print('close socket')
             userSockets[username].close()
             serverList.remove(userSockets[username])
@@ -157,9 +153,10 @@ if __name__ == "__main__":
                                 arr = receivedMesssage.split(" ")
                                 username = arr[1]
                                 print('send to kick ' + username)
-                                if userSockets[username] is not None:
-                                    print('kickable')
-                                    kick_user(username, userSockets, sock)
+                                for user in currentUsers.values():
+                                    if user == username:
+                                        print('kickable')
+                                        kick_user(username, userSockets, sock)
                                 else:
                                     print('offline')
                                     offline = "\n" + username + "is offline"
