@@ -12,7 +12,7 @@ from Crypto.Util.Padding import pad, unpad
 # to Rishija Mangla at the following link:
 # https://github.com/Rishija/python_chatServer
 
-# Function to help with decryption
+# Function to help with decryption with AES in CBC Mode
 
 
 def serverDecrypt(data, username):

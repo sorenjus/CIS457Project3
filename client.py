@@ -10,10 +10,10 @@ from base64 import b64decode, b64encode
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
+from Crypto.PublicKey import RSA
 
-# Function to create a secret key for client
-# Wait, this is symmetric, so maybe this should
-# be in the server as the public key?
+
+# Function to create a symmetric, private key for client
 
 
 def createClientPrivateKey():
@@ -24,7 +24,7 @@ def createClientPrivateKey():
     return encoded_key
 
 
-# Function to help with encryption
+# Function to help with encryption with AES in CBC mode
 
 
 def clientEncrypt(data):
@@ -91,6 +91,14 @@ def main():
     # Generate a secret key
     secretKey = createClientPrivateKey()
     print(secretKey)
+    # Place to hard code server public key
+    # TODO Determine how to make the server public key
+    # He said we don't need to publicize the server
+    # public key programmatically, so thinking we need
+    # to house a function to make one here?
+    # Was looking into this link:
+    # https://www.folkstalk.com/2022/10/python-generate-rsa-key-pair-with-code-examples.html
+    serverPublicKey = 0
 
     # asks for user name
     name = input("Enter username: ")
