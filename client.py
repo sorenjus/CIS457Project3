@@ -12,6 +12,8 @@ from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
 
 # Function to create a secret key for client
+# Wait, this is symmetric, so maybe this should
+# be in the server as the public key?
 
 
 def createClientPrivateKey():
