@@ -1,10 +1,43 @@
 import socket
+import json
 import select
+import signal
+from base64 import b64decode, b64encode
+
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
+from Crypto.Util.Padding import pad, unpad
 
 # Written by Justin Sorensen and Meghan Harris with referencing
 # to Rishija Mangla at the following link:
 # https://github.com/Rishija/python_chatServer
 
+# Function to help with decryption
+
+
+def serverDecrypt(data, username):
+    try:
+
+        b64 = json.loads(data)
+        iv = b64decode(b64['iv'])
+        ct = b64decode(b64['ciphertext'])
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        pt = unpad(cipher.decrypt(ct), AES.block_size)
+        print("The message was: ", pt)
+        return pt
+
+    except (ValueError, KeyError):
+        print("Incorrect decryption")
+
+# Function to handle sigkill
+
+
+def sig_handler(signum, frame):
+    result = input("Ctrl-c was pressed.  Exit? y or n\n")
+    print(result, end="", flush=True)
+    if result == 'y':
+        server.close()
+        exit(1)
 
 # Function to send message to all connected clients
 
@@ -75,6 +108,8 @@ if __name__ == "__main__":
     portNum = 9876
     # Server socket
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Handle ctrl-c from user
+    signal.signal(signal.SIGINT, sig_handler)
 
     server.bind(("localhost", int(portNum)))
     server.listen(10)  # listen atmost 10 connection at one time
@@ -129,7 +164,6 @@ if __name__ == "__main__":
                     data1 = data1.decode()
                     receivedMesssage = data1[:data1.index("\n")]
                     print("\ndata received: ", receivedMesssage)
-
                     # Retrieve socket address from client
                     i, p = sock.getpeername()
                     if receivedMesssage == "quit":

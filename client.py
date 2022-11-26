@@ -4,11 +4,40 @@ import select
 import socket
 import string
 import sys
+import os
 from base64 import b64decode, b64encode
 
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
+
+# Function to create a secret key for client
+
+
+def createClientPrivateKey():
+    # Create a random secret key
+    key = os.urandom(16)
+    # Encode the random secret key
+    encoded_key = b64encode(key)
+    return encoded_key
+
+
+# Function to help with encryption
+
+
+def clientEncrypt(data):
+    # Set up cipher object with cryptographic key and mode as params
+    key = get_random_bytes(16)
+    # Cipher used to encrypt or decrypt
+    cipher = AES.new(key, AES.MODE_CBC)
+
+    # Build encrypted data
+    ct_bytes = cipher.encrypt(pad(data.encode(), AES.block_size))
+    iv = b64encode(cipher.iv).decode('utf-8')
+    ct = b64encode(ct_bytes).decode('utf-8')
+    result = json.dumps({'iv': iv, 'ciphertext': ct})
+    print(result)
+    return result
 
 # Helper function (formatting)
 
@@ -57,12 +86,9 @@ def main():
     portNum = 9876
     # Boolean to hold admin status
     isAdmin = False
-    # Set up cipher object with cryptographic key and mode as params
-    key = get_random_bytes(16)
-    # Cipher used to encrypt or decrypt
-    cipher = AES.new(key, AES.MODE_CBC)
-    # Place to hold encryption
-    initializationVector = []
+    # Generate a secret key
+    secretKey = createClientPrivateKey()
+    print(secretKey)
 
     # asks for user name
     name = input("Enter username: ")
@@ -77,15 +103,8 @@ def main():
         sys.exit()
 
     # After connecting, send username
-    # Testing encrypt and decrypt
-    ct_bytes = cipher.encrypt(pad(name.encode(), AES.block_size))
-
-    iv = b64encode(cipher.iv).decode('utf-8')
-    ct = b64encode(ct_bytes).decode('utf-8')
-    result = json.dumps({'iv': iv, 'ciphertext': ct})
-    print(result)
     s.send(name.encode())
-
+    s.send(secretKey)
     while 1:
         socket_list = [sys.stdin, s]
 
