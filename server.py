@@ -71,8 +71,8 @@ if __name__ == "__main__":
     # Variable to hold incoming data
     buffer = 4096
     # Variable to hold port number input
-    portNum = input("Enter the server's port number: ")
-    # portNum = 9876
+    # portNum = input("Enter the server's port number: ")
+    portNum = 9876
     # Server socket
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
