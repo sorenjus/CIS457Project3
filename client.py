@@ -3,6 +3,11 @@ import select
 import string
 import sys
 import getpass
+import json
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
+from base64 import b64encode, b64decode
+from Crypto.Util.Padding import pad, unpad
 
 # Helper function (formatting)
 
@@ -51,6 +56,10 @@ def main():
     # portNum = 9876
     # Boolean to hold admin status
     isAdmin = False
+    # Set up cipher object with cryptographic key and mode as params
+    key = get_random_bytes(16)
+    # Cipher used to encrypt or decrypt
+    ciper = AES.new(key, AES.MODE_CBC)
 
     # asks for user name
     name = input("Enter username: ")
@@ -65,6 +74,7 @@ def main():
         sys.exit()
 
     # After connecting, send username
+
     s.send(name.encode())
     while 1:
         socket_list = [sys.stdin, s]
