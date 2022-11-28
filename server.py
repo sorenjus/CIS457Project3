@@ -76,7 +76,7 @@ if __name__ == "__main__":
     # Server socket
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    server.bind(("localhost", int(portNum)))
+    server.bind(("", int(portNum)))
     server.listen(10)  # listen atmost 10 connection at one time
 
     # Add server socket to the list of readable connections
