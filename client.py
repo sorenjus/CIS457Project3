@@ -18,10 +18,12 @@ from Crypto.PublicKey import RSA
 
 def createClientPrivateKey():
     # Create a random secret key
-    key = os.urandom(16)
-    # Encode the random secret key
-    encoded_key = b64encode(key)
-    return encoded_key
+    # key = os.urandom(16)
+    # # Encode the random secret key
+    # encoded_key = b64encode(key)
+    # return encoded_key
+    private_key = RSA.generate(2048)
+    return private_key
 
 
 # Function to help with encryption with AES in CBC mode
@@ -90,7 +92,7 @@ def main():
     isAdmin = False
     # Generate a secret key
     secretKey = createClientPrivateKey()
-    print(secretKey)
+    print("Client private key", secretKey)
     # Place to hard code server public key
     # TODO Determine how to make the server public key
     # He said we don't need to publicize the server
@@ -98,8 +100,8 @@ def main():
     # to house a function to make one here?
     # Was looking into this link:
     # https://www.folkstalk.com/2022/10/python-generate-rsa-key-pair-with-code-examples.html
-    serverPublicKey = 0
-
+    serverPublicKey = secretKey.publickey()
+    print("Server public key: ", serverPublicKey)
     # asks for user name
     name = input("Enter username: ")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -114,7 +116,7 @@ def main():
 
     # After connecting, send username
     s.send(name.encode())
-    s.send(secretKey)
+    # s.send(secretKey)
     while 1:
         socket_list = [sys.stdin, s]
 
