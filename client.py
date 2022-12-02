@@ -1,8 +1,47 @@
-import socket
+import getpass
+import json
 import select
+import socket
 import string
 import sys
-import getpass
+import os
+from base64 import b64decode, b64encode
+
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
+from Crypto.Util.Padding import pad, unpad
+from Crypto.PublicKey import RSA
+
+
+# Function to create a symmetric, private key for client
+
+
+def createClientPrivateKey():
+    # Create a random secret key
+    # key = os.urandom(16)
+    # # Encode the random secret key
+    # encoded_key = b64encode(key)
+    # return encoded_key
+    private_key = RSA.generate(2048)
+    return private_key
+
+
+# Function to help with encryption with AES in CBC mode
+
+
+def clientEncrypt(data):
+    # Set up cipher object with cryptographic key and mode as params
+    key = get_random_bytes(16)
+    # Cipher used to encrypt or decrypt
+    cipher = AES.new(key, AES.MODE_CBC)
+
+    # Build encrypted data
+    ct_bytes = cipher.encrypt(pad(data.encode(), AES.block_size))
+    iv = b64encode(cipher.iv).decode('utf-8')
+    ct = b64encode(ct_bytes).decode('utf-8')
+    result = json.dumps({'iv': iv, 'ciphertext': ct})
+    print(result)
+    return result
 
 # Helper function (formatting)
 
@@ -43,15 +82,26 @@ def commandTree(msg, s, isAdmin):
 
 def main():
 
-    # serverIP = "127.0.0.1"
+    serverIP = "127.0.0.1"
     # Input to hold server address
-    serverIP = input("Enter server ip address: ")
+    # serverIP = input("Enter server ip address: ")
     # Input to hold port number
-    portNum = input("Enter the server's port number: ")
-    # portNum = 9876
+    # portNum = input("Enter the server's port number: ")
+    portNum = 9876
     # Boolean to hold admin status
     isAdmin = False
-
+    # Generate a secret key
+    secretKey = createClientPrivateKey()
+    print("Client private key", secretKey)
+    # Place to hard code server public key
+    # TODO Determine how to make the server public key
+    # He said we don't need to publicize the server
+    # public key programmatically, so thinking we need
+    # to house a function to make one here?
+    # Was looking into this link:
+    # https://www.folkstalk.com/2022/10/python-generate-rsa-key-pair-with-code-examples.html
+    serverPublicKey = secretKey.publickey()
+    print("Server public key: ", serverPublicKey)
     # asks for user name
     name = input("Enter username: ")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -66,6 +116,7 @@ def main():
 
     # After connecting, send username
     s.send(name.encode())
+    # s.send(secretKey)
     while 1:
         socket_list = [sys.stdin, s]
 
@@ -73,7 +124,7 @@ def main():
         rList, wList, error_list = select.select(socket_list, [], [])
 
         for sockfd in rList:
-            # incoming message from server
+           # incoming message from server
             if sockfd == s:
                 data = sockfd.recv(4096)
                 data = data.decode()
