@@ -4,44 +4,46 @@ import select
 import socket
 import string
 import sys
-import os
 from base64 import b64decode, b64encode
 
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
-from Crypto.PublicKey import RSA
+import rsa
 
 
 # Function to create a symmetric, private key for client
 
 
-def createClientPrivateKey():
-    # Create a random secret key
-    # key = os.urandom(16)
-    # # Encode the random secret key
-    # encoded_key = b64encode(key)
-    # return encoded_key
-    private_key = RSA.generate(2048)
-    return private_key
+def createClientSymmetricKey():
+    # Set up cipher object with cryptographic key and mode as params
+    key = get_random_bytes(16)
+    return key
 
 
 # Function to help with encryption with AES in CBC mode
 
 
-def clientEncrypt(data):
-    # Set up cipher object with cryptographic key and mode as params
-    key = get_random_bytes(16)
+def clientEncrypt(data, key):
     # Cipher used to encrypt or decrypt
-    cipher = AES.new(key, AES.MODE_CBC)
+    print(key)
+    try:
+        cipher = AES.new(key, AES.MODE_CBC)
+        print(cipher)
 
-    # Build encrypted data
-    ct_bytes = cipher.encrypt(pad(data.encode(), AES.block_size))
-    iv = b64encode(cipher.iv).decode('utf-8')
-    ct = b64encode(ct_bytes).decode('utf-8')
-    result = json.dumps({'iv': iv, 'ciphertext': ct})
-    print(result)
-    return result
+        # Build encrypted data
+        ct_bytes = cipher.encrypt(pad(data, AES.block_size))
+        # print(ct_bytes)
+        # print(cipher.iv)
+        iv = b64encode(cipher.iv).decode('utf-8')
+        print(iv)
+        ct = b64encode(ct_bytes).decode('utf-8')
+        result = json.dumps({'iv': iv, 'ciphertext': ct})
+
+        print("Result: ", result)
+        return result
+    except (ValueError, KeyError):
+        print("something happened")
 
 # Helper function (formatting)
 
@@ -90,20 +92,17 @@ def main():
     portNum = 9876
     # Boolean to hold admin status
     isAdmin = False
-    # Generate a secret key
-    secretKey = createClientPrivateKey()
-    print("Client private key", secretKey)
-    # Place to hard code server public key
-    # TODO Determine how to make the server public key
-    # He said we don't need to publicize the server
-    # public key programmatically, so thinking we need
-    # to house a function to make one here?
-    # Was looking into this link:
-    # https://www.folkstalk.com/2022/10/python-generate-rsa-key-pair-with-code-examples.html
-    serverPublicKey = secretKey.publickey()
-    print("Server public key: ", serverPublicKey)
+    # Symmetric Key
+    symmetricKey = ""
+
+    # Grab public key from file
+    publicKey = ""
+    with open("RSApub.pem", 'rb') as public_key:
+        key_data = public_key.read()
+        # publicKey = rsa.PublicKey.load_pkcs1_openssl_pem(key_data)
+        publicKey = key_data
+
     # asks for user name
-    name = input("Enter username: ")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(2)
 
@@ -114,6 +113,11 @@ def main():
         print("\n Can't connect to the server \n")
         sys.exit()
 
+    symmetricKey = createClientSymmetricKey()
+    msg = clientEncrypt(publicKey, symmetricKey)
+    print(msg.encode())
+    s.send(msg.encode())
+    name = input("Enter username: ")
     # After connecting, send username
     s.send(name.encode())
     # s.send(secretKey)

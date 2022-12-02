@@ -7,6 +7,7 @@ from base64 import b64decode, b64encode
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
+import rsa
 
 # Written by Justin Sorensen and Meghan Harris with referencing
 # to Rishija Mangla at the following link:
@@ -15,13 +16,20 @@ from Crypto.Util.Padding import pad, unpad
 # Function to help with decryption with AES in CBC Mode
 
 
-def serverDecrypt(data, username):
+def serverDecrypt(data):
+    # Grab public key from file
+    privateKey = ""
+    with open("RSApriv.pem", 'rb') as private_file:
+        key_data = private_file.read()
+        # privateKey = rsa.PublicKey.load_pkcs1_openssl_pem(key_data)
+        privateKey = key_data
+
     try:
 
         b64 = json.loads(data)
         iv = b64decode(b64['iv'])
         ct = b64decode(b64['ciphertext'])
-        cipher = AES.new(key, AES.MODE_CBC, iv)
+        cipher = AES.new(privateKey, AES.MODE_CBC, iv)
         pt = unpad(cipher.decrypt(ct), AES.block_size)
         print("The message was: ", pt)
         return pt
@@ -129,6 +137,8 @@ if __name__ == "__main__":
             if sock == server:
                 # Accept new connections through server socket
                 sockfd, clientAddr = server.accept()
+                temp = sockfd.recv(buffer)
+                symmetricKey = serverDecrypt(temp.decode())
                 user = sockfd.recv(buffer)
                 user = user.decode()
                 serverList.append(sockfd)
