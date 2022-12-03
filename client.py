@@ -12,18 +12,28 @@ from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
 from Crypto.PublicKey import RSA
 
+# Written by Justin Sorensen and Meghan Harris with referencing
+# to Rishija Mangla at the following link:
+# https://github.com/Rishija/python_chatServer
+#
+# Program to simulate an ecrypted chat server with functions
+# to hold client symmetric keys and encrypt/decrypt client
+# messages.
 
-# Function to create a symmetric, private key for client
+# Function to create a symmetric key for client
 
 
 def createClientSymmetricKey():
     # Generate a new symmetric key
-    # TODO investigate Fernet.generate_key()
     key = get_random_bytes(16)
     return key
 
 
-# Function to help with encryption with AES in CBC mode
+# Function to encrypt symmetric key with server's
+# RSA public key
+#
+# We referenced the following site:
+# https://pycryptodome.readthedocs.io/en/latest/src/cipher/oaep.html
 
 
 def clientEncrypt(data, key):
@@ -38,12 +48,17 @@ def clientEncrypt(data, key):
     except (ValueError, KeyError):
         print("something happened")
 
-# AES in CBC Mode encryption function
+# AES in CBC Mode encryption function for client messages
+#
+# We referenced the following link:
+# https://pycryptodome.readthedocs.io/en/latest/src/cipher/classic.html#cbc-mode
 
 
 def messageEncryption(message, key):
+    # Generate new cipher in AES CBC mode using symmetric key
     cipher = AES.new(key, AES.MODE_CBC)
 
+    # Encrypt message, extract iv from cipher, and put into JSON format
     ct_bytes = cipher.encrypt(pad(message.encode(), AES.block_size))
     iv = b64encode(cipher.iv).decode('utf-8')
     ct = b64encode(ct_bytes).decode('utf-8')
@@ -51,17 +66,23 @@ def messageEncryption(message, key):
     # print(result)
     return result
 
-# AES in CBC Mode decryption function
+# AES in CBC Mode decryption function for client messages
+#
+# We referenced the following link:
+# https://pycryptodome.readthedocs.io/en/latest/src/cipher/classic.html#cbc-mode
 
 
 def messageDecryption(message, key):
     try:
+        # Parse JSON message for iv and cipher text
         b64 = json.loads(message)
         iv = b64decode(b64['iv'])
         ct = b64decode(b64['ciphertext'])
         cipher = AES.new(key, AES.MODE_CBC, iv)
+
+        # Decrypt message with cipher
         result = unpad(cipher.decrypt(ct), AES.block_size)
-        # print("The message was: ", result)
+
         return result.decode()
 
     except (ValueError, KeyError):
@@ -74,7 +95,8 @@ def displayMessage():
     sys.stdout.write("me : ")
     sys.stdout.flush()
 
-# Function to handle admin commands
+# Function to handle admin commands: admin, getusers,
+# kick, and make admin
 
 
 def commandTree(msg, s, isAdmin, key):
@@ -107,12 +129,12 @@ def commandTree(msg, s, isAdmin, key):
 
 def main():
 
-    serverIP = "127.0.0.1"
     # Input to hold server address
-    # serverIP = input("Enter server ip address: ")
+    # serverIP = "127.0.0.1"
+    serverIP = input("Enter server ip address: ")
     # Input to hold port number
-    # portNum = input("Enter the server's port number: ")
-    portNum = 9876
+    portNum = input("Enter the server's port number: ")
+    # portNum = 9876
     # Boolean to hold admin status
     isAdmin = False
     # Symmetric Key
@@ -132,16 +154,18 @@ def main():
         print("\n Can't connect to the server \n")
         sys.exit()
 
+    # Send server new and encrypted symmetric key
     symmetricKey = createClientSymmetricKey()
     # print(symmetricKey)
     msg = clientEncrypt(symmetricKey, publicKey)
-    # print(msg)
-    # Send Symmetric Key encrypted with RSA
     s.send(msg)
+
+    # After connecting, send server encrypted name
     name = input("Enter username: ")
-    # After connecting, send username
     name = messageEncryption(name, symmetricKey)
     s.send(name.encode())
+
+    # Main loop to send encrypted chats
     while 1:
         socket_list = [sys.stdin, s]
 
@@ -151,6 +175,7 @@ def main():
         for sockfd in rList:
            # incoming message from server
             if sockfd == s:
+                # Receive and decrypt message
                 data = sockfd.recv(4096)
                 data = data.decode()
                 data = messageDecryption(data, symmetricKey)
