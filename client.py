@@ -18,6 +18,7 @@ from Crypto.PublicKey import RSA
 
 def createClientSymmetricKey():
     # Generate a new symmetric key
+    # TODO investigate Fernet.generate_key()
     key = get_random_bytes(16)
     return key
 
@@ -37,6 +38,35 @@ def clientEncrypt(data, key):
     except (ValueError, KeyError):
         print("something happened")
 
+# AES in CBC Mode encryption function
+
+
+def messageEncryption(message, key):
+    cipher = AES.new(key, AES.MODE_CBC)
+
+    ct_bytes = cipher.encrypt(pad(message.encode(), AES.block_size))
+    iv = b64encode(cipher.iv).decode('utf-8')
+    ct = b64encode(ct_bytes).decode('utf-8')
+    result = json.dumps({'iv': iv, 'ciphertext': ct})
+    # print(result)
+    return result
+
+# AES in CBC Mode decryption function
+
+
+def messageDecryption(message, key):
+    try:
+        b64 = json.loads(message)
+        iv = b64decode(b64['iv'])
+        ct = b64decode(b64['ciphertext'])
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        result = unpad(cipher.decrypt(ct), AES.block_size)
+        # print("The message was: ", result)
+        return result.decode()
+
+    except (ValueError, KeyError):
+        print("")
+
 # Helper function (formatting)
 
 
@@ -47,12 +77,13 @@ def displayMessage():
 # Function to handle admin commands
 
 
-def commandTree(msg, s, isAdmin):
+def commandTree(msg, s, isAdmin, key):
     # Client assigns themselves admin status
+    result = messageEncryption(msg, key)
     if "-admin" in msg and isAdmin == False:
         password = getpass.getpass('Enter the password : ')
         if (password == 'password'):
-            s.send(msg.encode())
+            s.send(result.encode())
             print('You are now an admin')
             return True
         else:
@@ -61,10 +92,10 @@ def commandTree(msg, s, isAdmin):
         print('you are already an admin')
         return True
     elif isAdmin:
-        s.send(msg.encode())
+        s.send(result.encode())
         return True
     elif "-getusers" in msg:
-        s.send(msg.encode())
+        s.send(result.encode())
         return isAdmin
     else:
         return isAdmin
@@ -102,12 +133,14 @@ def main():
         sys.exit()
 
     symmetricKey = createClientSymmetricKey()
-    print(symmetricKey)
+    # print(symmetricKey)
     msg = clientEncrypt(symmetricKey, publicKey)
-    print(msg)
+    # print(msg)
+    # Send Symmetric Key encrypted with RSA
     s.send(msg)
     name = input("Enter username: ")
     # After connecting, send username
+    name = messageEncryption(name, symmetricKey)
     s.send(name.encode())
     while 1:
         socket_list = [sys.stdin, s]
@@ -120,6 +153,7 @@ def main():
             if sockfd == s:
                 data = sockfd.recv(4096)
                 data = data.decode()
+                data = messageDecryption(data, symmetricKey)
                 if not data:
                     print('\nDisconnected from server')
                     sys.exit()
@@ -137,9 +171,10 @@ def main():
             else:
                 msg = sys.stdin.readline()
                 if msg.startswith('-'):
-                    isAdmin = commandTree(msg, s, isAdmin)
+                    isAdmin = commandTree(msg, s, isAdmin, symmetricKey)
                     displayMessage()
                 else:
+                    msg = messageEncryption(msg, symmetricKey)
                     s.send(msg.encode())
                     displayMessage()
 

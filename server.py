@@ -24,11 +24,40 @@ def serverDecrypt(data):
     try:
         cipher = PKCS1_OAEP.new(privateKey)
         message = cipher.decrypt(data)
-        print("The message was: ", message)
+        # print("The message was: ", message)
         return message
 
     except (ValueError, KeyError):
-        print("Incorrect decryption")
+        print("")
+
+# AES in CBC Mode encryption function
+
+
+def messageEncryption(message, key):
+    cipher = AES.new(key, AES.MODE_CBC)
+
+    ct_bytes = cipher.encrypt(pad(message.encode(), AES.block_size))
+    iv = b64encode(cipher.iv).decode('utf-8')
+    ct = b64encode(ct_bytes).decode('utf-8')
+    result = json.dumps({'iv': iv, 'ciphertext': ct})
+    # print(result)
+    return result
+
+# AES in CBC Mode decryption function
+
+
+def messageDecryption(message, key):
+    try:
+        b64 = json.loads(message)
+        iv = b64decode(b64['iv'])
+        ct = b64decode(b64['ciphertext'])
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        result = unpad(cipher.decrypt(ct), AES.block_size)
+        # print("The message was: ", result)
+        return result.decode()
+
+    except (ValueError, KeyError):
+        print("")
 
 # Function to handle sigkill
 
@@ -45,27 +74,34 @@ def sig_handler(signum, frame):
 
 def send_to_all(sock, message):
     # Message not forwarded to server and sender itself
+    counter = -1
     for socket in serverList:
+        # print(userArr[counter].name)
         if socket != server and socket != sock:
             try:
-                socket.send(message)
+                result = messageEncryption(message, userArr[counter].key)
+                socket.send(result.encode())
             except:
                 # if connection not available
                 socket.close()
                 serverList.remove(socket)
+        counter += 1
 
 # Function to send messages to selected client
 
 
 def send_to_individual(message, username, userSocket):
     userExists = False
+    userKey = ""
     for item in userArr:
         if item.name == username:
             userExists = True
+            userKey = item.key
     if userExists:
         if userSocket[username] is not None:
             try:
-                userSocket[username].send(message.encode())
+                result = messageEncryption(message, userKey)
+                userSocket[username].send(result.encode())
             except:
                 # if connection not available
                 userSocket[username].close()
@@ -81,10 +117,11 @@ def kick_user(username, userSockets, sock):
         serverList.remove(userSockets[username])
         del userSockets[username]
         removed = "\n" + username + " has been kicked from the conversation\n"
-        send_to_all(removed.encode())
+        send_to_all(sock, removed)
     except:
         offline = "\n" + username + " is offline\n"
-        sock.send(offline.encode())
+        send_to_all(sock, offline)
+        # sock.send(offline.encode())
 
 
 class users:
@@ -110,6 +147,8 @@ if __name__ == "__main__":
     userSockets = {}
     # Variable to hold incoming data
     buffer = 4096
+    keyBuffer = 4096
+    nameBuffer = 4096
     # Variable to hold port number input
     # portNum = input("Enter the server's port number: ")
     portNum = 9876
@@ -136,26 +175,27 @@ if __name__ == "__main__":
             if sock == server:
                 # Accept new connections through server socket
                 sockfd, clientAddr = server.accept()
-                temp = sockfd.recv(buffer)
+                temp = sockfd.recv(keyBuffer)
                 symmetricKey = serverDecrypt(temp)
-                user = sockfd.recv(buffer)
+                user = sockfd.recv(nameBuffer)
                 user = user.decode()
+                user = messageDecryption(user, symmetricKey)
                 serverList.append(sockfd)
                 currentUsers[clientAddr] = ""
-                print(currentUsers)
 
                 # Check for duplicate usernames
                 duplicate = False
                 for element in userArr:
                     if element.name == user:
                         duplicateUsername = "Username already taken!\n"
+                        duplicateUsername = messageEncryption(
+                            duplicateUsername, symmetricKey)
                         sockfd.send(duplicateUsername.encode())
                         del currentUsers[clientAddr]
                         serverList.remove(sockfd)
                         sockfd.close()
                         duplicate = True
                         continue
-                print(currentUsers)
                 if duplicate:
                     continue
                 # add name and address
@@ -163,6 +203,7 @@ if __name__ == "__main__":
                 print("Client (%s, %s) connected" %
                       clientAddr, " [", currentUsers[clientAddr], "]")
                 welcome = "\nWelcome\n"
+                welcome = messageEncryption(welcome, symmetricKey)
                 sockfd.send(welcome.encode())
                 userSockets[user] = sockfd
                 userArr.append(users(user, symmetricKey))
@@ -171,30 +212,36 @@ if __name__ == "__main__":
                 newUserMsg = "\n" + user + \
                     " is online\n"
                 send_to_all(
-                    sockfd, newUserMsg.encode())
+                    sockfd, newUserMsg)
                 print(currentUsers)
             # Incoming message from a client
             else:
                 try:
                     data1 = sock.recv(buffer)
                     data1 = data1.decode()
+                    i, p = sock.getpeername()
+                    for user in userArr:
+                        if user.name == currentUsers[(i, p)]:
+                            print(user.name)
+                            data1 = messageDecryption(data1, user.key)
                     receivedMesssage = data1[:data1.index("\n")]
                     print("\ndata received: ", receivedMesssage)
                     # Retrieve socket address from client
-                    i, p = sock.getpeername()
                     if receivedMesssage == "quit":
                         msg = "\n" + \
                             currentUsers[(i, p)]+" left the conversation\n"
                         for user in userArr:
                             if user.name == currentUsers[(i, p)]:
+                                print("Username: ", user.name)
                                 userArr.remove(user)
-
-                        send_to_all(sock, msg.encode())
+                        for obj in userArr:
+                            print(obj.name, obj.key, sep=", ")
                         print("\nClient (%s, %s) is offline" %
                               (i, p), " [", currentUsers[(i, p)], "]\n")
                         del currentUsers[(i, p)]
                         serverList.remove(sock)
                         sock.close()
+                        send_to_all(sock, msg)
                     # Handle client admin commands
                     elif receivedMesssage.startswith('-'):
                         # Client assigned admin status
@@ -212,6 +259,9 @@ if __name__ == "__main__":
                                     str1 += element.name
                                 counter += 1
                             str1 += "\n"
+                            for user in userArr:
+                                if user.name == currentUsers[(i, p)]:
+                                    str1 = messageEncryption(str1, user.key)
                             sock.send(str1.encode())
                         # Client admin removes another client from the server
                         elif ('-kick') in receivedMesssage:
@@ -220,12 +270,22 @@ if __name__ == "__main__":
                                     isAdmin = True
                             if isAdmin:
                                 arr = receivedMesssage.split(" ")
-                                username = arr[1]
-                                for user in userArr:
-                                    if user.name == username:
-                                        kick_user(username, userSockets, sock)
-                                        userArr.remove(user)
-                                        continue
+                                if len(arr) > 1:
+                                    username = arr[1]
+                                    for user in userArr:
+                                        if user.name == username:
+                                            userArr.remove(user)
+                                            kick_user(
+                                                username, userSockets, sock)
+                                            continue
+                                else:
+                                    for user in userArr:
+                                        if user.name == currentUsers[(i, p)]:
+                                            msg = "Error: no username provided.\n"
+                                            msg = messageEncryption(
+                                                msg, user.key)
+                                            sock.send(msg.encode())
+
                         # Client admin makes another client an admin
                         elif ('-makeadmin') in receivedMesssage:
                             for admin in admins:
@@ -264,14 +324,13 @@ if __name__ == "__main__":
                         msg = "\n" + \
                             currentUsers[(i, p)]+": " + \
                             receivedMesssage+"\n"
-                        send_to_all(sock, msg.encode())
+                        send_to_all(sock, msg)
 
                 # User exits without quit command
                 except:
                     (i, p) = sock.getpeername()
                     msg = "\n"+currentUsers[(i, p)
                                             ]+" left the conversation unexpectedly\n"
-                    send_to_all(sock, msg.encode())
                     print("Client (%s, %s) is offline" %
                           (i, p), " [", currentUsers[(i, p)], "]\n")
                     for user in userArr:
@@ -280,6 +339,7 @@ if __name__ == "__main__":
                     del currentUsers[(i, p)]
                     serverList.remove(sock)
                     sock.close()
+                    send_to_all(sock, msg)
                     continue
 
     server.close()
