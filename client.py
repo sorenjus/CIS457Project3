@@ -7,16 +7,17 @@ import sys
 from base64 import b64decode, b64encode
 
 from Crypto.Cipher import AES
+from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
-import rsa
+from Crypto.PublicKey import RSA
 
 
 # Function to create a symmetric, private key for client
 
 
 def createClientSymmetricKey():
-    # Set up cipher object with cryptographic key and mode as params
+    # Generate a new symmetric key
     key = get_random_bytes(16)
     return key
 
@@ -25,23 +26,14 @@ def createClientSymmetricKey():
 
 
 def clientEncrypt(data, key):
-    # Cipher used to encrypt or decrypt
-    print(key)
     try:
-        cipher = AES.new(key, AES.MODE_CBC)
-        print(cipher)
+        # Cipher used to encrypt or decrypt
+        cipher = PKCS1_OAEP.new(key)
 
         # Build encrypted data
-        ct_bytes = cipher.encrypt(pad(data, AES.block_size))
-        # print(ct_bytes)
-        # print(cipher.iv)
-        iv = b64encode(cipher.iv).decode('utf-8')
-        print(iv)
-        ct = b64encode(ct_bytes).decode('utf-8')
-        result = json.dumps({'iv': iv, 'ciphertext': ct})
+        ct_bytes = cipher.encrypt(data)
 
-        print("Result: ", result)
-        return result
+        return ct_bytes
     except (ValueError, KeyError):
         print("something happened")
 
@@ -96,11 +88,7 @@ def main():
     symmetricKey = ""
 
     # Grab public key from file
-    publicKey = ""
-    with open("RSApub.pem", 'rb') as public_key:
-        key_data = public_key.read()
-        # publicKey = rsa.PublicKey.load_pkcs1_openssl_pem(key_data)
-        publicKey = key_data
+    publicKey = RSA.importKey(open("RSApub.pem").read())
 
     # asks for user name
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -114,13 +102,13 @@ def main():
         sys.exit()
 
     symmetricKey = createClientSymmetricKey()
-    msg = clientEncrypt(publicKey, symmetricKey)
-    print(msg.encode())
-    s.send(msg.encode())
+    print(symmetricKey)
+    msg = clientEncrypt(symmetricKey, publicKey)
+    print(msg)
+    s.send(msg)
     name = input("Enter username: ")
     # After connecting, send username
     s.send(name.encode())
-    # s.send(secretKey)
     while 1:
         socket_list = [sys.stdin, s]
 
